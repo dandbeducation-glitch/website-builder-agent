@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draftline — AI Website Builder Agent</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root{
+    --paper:#FFFFFF;
+    --paper-line:#E2E5DA;
+    --ink:#232619;
+    --ink-soft:#6E7460;
+    --blue:#4B5A2A;
+    --blue-dim:#EEF1E5;
+    --amber:#7C8F49;
+    --amber-soft:#F0F3E7;
+    --grey:#A6AC9A;
+    --green:#3B4A22;
+    --red:#B5533C;
+    --mono: 'Inter', sans-serif;
+    --disp: 'Poppins', sans-serif;
+    --body: 'Inter', -apple-system, sans-serif;
+    --radius: 14px;
+    --pill: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:var(--body);
+    color:var(--ink);
+    background:var(--paper);
+    display:flex;
+    flex-direction:column;
+  }
+
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 28px;
+    background:var(--paper);
+    position:relative;
+    z-index:5;
+    border-bottom:1px solid var(--paper-line);
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand svg{ width:36px; height:36px; flex-shrink:0; }
+  .brand-text h1{
+    font-family:var(--disp);
+    font-size:20px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:0.1px;
+    color:var(--ink);
+  }
+  .brand-text span{
+    font-family:var(--body);
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .header-actions{ display:flex; gap:8px; align-items:center; }
+  .icon-btn{
+    border:1px solid var(--paper-line);
+    background:#fff;
+    color:var(--ink);
+    font-family:var(--body);
+    font-weight:600;
+    font-size:12.5px;
+    padding:9px 16px;
+    border-radius:var(--pill);
+    cursor:pointer;
+    transition:background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .icon-btn:hover{ background:var(--blue); color:#fff; border-color:var(--blue); }
+  .icon-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .icon-btn:disabled:hover{ background:#fff; color:var(--ink); border-color:var(--paper-line); }
+
+  .rail{
+    display:flex;
+    gap:8px;
+    padding:12px 28px;
+    background:var(--paper);
+    border-bottom:1px solid var(--paper-line);
+    overflow-x:auto;
+  }
+  .stage{
+    font-family:var(--body);
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--grey);
+    padding:6px 13px;
+    border-radius:8px;
+    background:#fff;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    white-space:nowrap;
+    position:relative;
+    border:1px solid var(--paper-line);
+  }
+  .stage .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--grey);
+    flex-shrink:0;
+  }
+  .stage.active{ color:#fff; background:var(--blue); border-color:var(--blue); }
+  .stage.active .dot{ background:#fff; }
+  .stage.done{ color:var(--green); border-color:#D7DECB; background:var(--blue-dim); }
+  .stage.done .dot{ background:var(--green); }
+
+  .qcounter{
+    font-family:var(--body);
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    padding:6px 28px 0;
+  }
+
+  main{
+    flex:1;
+    display:flex;
+    justify-content:center;
+    overflow:hidden;
+  }
+  #chat-scroll{
+    width:100%;
+    max-width:760px;
+    overflow-y:auto;
+    padding:20px 20px 160px;
+  }
+  .msg{
+    margin-bottom:20px;
+    max-width:100%;
+    animation:rise 0.25s ease;
+  }
+  @keyframes rise{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+  .msg .label{
+    font-family:var(--body);
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .msg.agent .label::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--blue); display:inline-block; }
+  .msg.user .label::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--amber); display:inline-block; }
+  .bubble{
+    position:relative;
+    padding:15px 19px;
+    border-radius:var(--radius);
+    line-height:1.6;
+    font-size:15px;
+    white-space:pre-wrap;
+  }
+  .msg.agent .bubble{
+    background:#fff;
+    border:1px solid var(--paper-line);
+    border-left:3px solid var(--blue);
+  }
+  .msg.user .bubble{
+    background:var(--blue-dim);
+    border:1px solid #D7DECB;
+    border-left:3px solid var(--amber);
+  }
+  .bubble code{ font-family:'Courier New', monospace; background:var(--blue-dim); padding:1px 6px; border-radius:5px; font-size:0.9em; }
+  .bubble pre{ font-family:'Courier New', monospace; background:var(--ink); color:#F2F4EC; padding:14px; border-radius:10px; overflow-x:auto; font-size:13px; line-height:1.5; }
+  .bubble strong{ color:var(--ink); }
+  .bubble .req-tag{
+    display:inline-block;
+    font-family:var(--body);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    color:#fff;
+    background:var(--amber);
+    border-radius:6px;
+    padding:2px 9px;
+    margin-bottom:8px;
+  }
+  .typing{ display:flex; gap:5px; padding:6px 0; }
+  .typing span{ width:6px; height:6px; border-radius:50%; background:var(--blue); animation:pulse 1.1s infinite ease-in-out; }
+  .typing span:nth-child(2){ animation-delay:0.15s; }
+  .typing span:nth-child(3){ animation-delay:0.3s; }
+  @keyframes pulse{ 0%,80%,100%{opacity:0.25;} 40%{opacity:1;} }
+
+  .input-dock{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    display:flex;
+    justify-content:center;
+    padding:14px 20px 20px;
+    background:linear-gradient(to top, var(--paper) 65%, transparent);
+  }
+  .input-col{
+    width:100%;
+    max-width:760px;
+  }
+  .input-wrap{
+    width:100%;
+    display:flex;
+    gap:10px;
+    align-items:flex-end;
+    background:#fff;
+    border:1.5px solid var(--paper-line);
+    border-radius:var(--radius);
+    padding:11px 11px 11px 18px;
+    box-shadow:0 4px 16px rgba(35,38,25,0.06);
+  }
+  .input-wrap:focus-within{ border-color:var(--blue); }
+  #userInput{
+    flex:1;
+    border:none;
+    outline:none;
+    resize:none;
+    font-family:var(--body);
+    font-size:15px;
+    line-height:1.4;
+    max-height:140px;
+    padding:6px 0;
+    background:transparent;
+    color:var(--ink);
+  }
+  #sendBtn{
+    background:var(--blue);
+    color:#fff;
+    border:none;
+    border-radius:var(--pill);
+    padding:11px 22px;
+    font-family:var(--body);
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:background 0.15s ease;
+  }
+  #sendBtn:disabled{ opacity:0.4; cursor:not-allowed; }
+  #sendBtn:hover:not(:disabled){ background:var(--green); }
+  .below-input{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:9px;
+    padding:0 8px;
+  }
+  #skipBtn{
+    background:none;
+    border:none;
+    font-family:var(--body);
+    font-weight:600;
+    font-size:12px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    padding:2px 0;
+  }
+  #skipBtn:hover{ color:var(--blue); }
+  .hint{
+    font-family:var(--body);
+    font-size:11.5px;
+    color:var(--grey);
+    font-weight:500;
+  }
+
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(35,38,25,0.55);
+    display:flex; align-items:center; justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  .modal{
+    background:var(--paper);
+    border-radius:18px;
+    max-width:440px;
+    width:100%;
+    padding:32px;
+    box-shadow:0 24px 60px rgba(35,38,25,0.28);
+  }
+  .modal h2{
+    font-family:var(--disp);
+    font-size:21px;
+    font-weight:700;
+    margin:0 0 8px;
+    color:var(--ink);
+  }
+  .modal p{
+    font-size:13.5px;
+    color:var(--ink-soft);
+    line-height:1.55;
+    margin:0 0 18px;
+  }
+  .modal input{
+    width:100%;
+    padding:12px 15px;
+    font-family:var(--body);
+    font-size:14px;
+    border:1.5px solid var(--paper-line);
+    border-radius:var(--pill);
+    margin-bottom:14px;
+    background:#fff;
+    color:var(--ink);
+  }
+  .modal input:focus{ outline:none; border-color:var(--blue); }
+  .modal .warn{
+    font-size:11.5px;
+    color:#A8583D;
+    background:#FBEEE9;
+    border:1.5px solid #EFCCBD;
+    padding:10px 14px;
+    border-radius:10px;
+    margin-bottom:16px;
+    line-height:1.5;
+  }
+  .modal button{
+    width:100%;
+    background:var(--blue);
+    color:#fff;
+    border:none;
+    padding:13px;
+    font-family:var(--body);
+    font-weight:600;
+    font-size:13.5px;
+    border-radius:var(--pill);
+    cursor:pointer;
+    transition:background 0.15s ease;
+  }
+  .modal button:hover{ background:var(--green); }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-thumb{ background:var(--paper-line); border-radius:4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 40 40" fill="none">
+      <rect x="3" y="3" width="34" height="34" rx="10" fill="#4B5A2A"/>
+      <path d="M12 26 L18 14 L22 22 L26 15 L29 26" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <div class="brand-text">
+      <h1>Draftline</h1>
+      <span>AI Website Builder Agent</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="icon-btn" id="previewBtn" disabled>Preview</button>
+    <button class="icon-btn" id="exportBtn" disabled>Export Site</button>
+    <button class="icon-btn" id="resetBtn">New Client</button>
+    <button class="icon-btn" id="logoutBtn" style="display:none;">Log Out</button>
+  </div>
+</header>
+
+<div class="rail" id="rail"></div>
+<div class="qcounter" id="qcounter"></div>
+
+<main>
+  <div id="chat-scroll"></div>
+</main>
+
+<div class="input-dock">
+  <div class="input-col">
+    <div class="input-wrap">
+      <textarea id="userInput" rows="1" placeholder="Type your answer…"></textarea>
+      <button id="sendBtn">Submit</button>
+    </div>
+    <div class="below-input">
+      <span class="hint" id="hintText"></span>
+      <button id="skipBtn" style="display:none;">Skip this question →</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="previewOverlay" style="display:none; padding:40px;">
+  <div style="background:#fff; border:1.5px solid var(--ink); border-radius:var(--radius); width:100%; height:100%; max-width:1200px; display:flex; flex-direction:column; overflow:hidden;">
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid var(--paper-line); background:var(--paper);">
+      <span style="font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft);">Live Preview — Current Build</span>
+      <div style="display:flex; gap:8px;">
+        <button class="icon-btn" id="exportFromPreviewBtn">Export Site</button>
+        <button class="icon-btn" id="closePreviewBtn">Close</button>
+      </div>
+    </div>
+    <iframe id="previewFrame" style="flex:1; border:none; width:100%;"></iframe>
+  </div>
+</div>
+
+<div class="overlay" id="authOverlay">
+  <div class="modal">
+    <h2 id="authTitle">Log in to Draftline</h2>
+    <p id="authSubtitle">Enter your account to start building. New here? Switch to Sign up below.</p>
+    <input type="text" id="authUsername" placeholder="Username" autocomplete="username">
+    <input type="password" id="authPassword" placeholder="Password" autocomplete="current-password">
+    <div id="authError" style="display:none; font-size:12px; color:var(--red); margin:-6px 0 14px;"></div>
+    <button id="authSubmitBtn">Log In</button>
+    <p style="text-align:center; margin:14px 0 0; font-size:12.5px;">
+      <a href="#" id="authToggleLink" style="color:var(--blue);">Need an account? Sign up</a>
+    </p>
+  </div>
+</div>
+
+<script>
+const STAGES = [
+  { id:'business', label:'Business' },
+  { id:'branding', label:'Branding' },
+  { id:'requirements', label:'Requirements' },
+  { id:'hosting', label:'Hosting & SEO' },
+  { id:'build', label:'Build' },
+  { id:'handover', label:'Handover' }
+];
+
+// One-at-a-time onboarding script. Each question is asked, answered, submitted, then the next appears.
+const QUESTIONS = [
+  { id:'business_name', stage:'business', q:"What's your business name?", required:true },
+  { id:'business_description', stage:'business', q:"In a sentence or two, what does your business do?", required:true },
+  { id:'industry', stage:'business', q:"What industry are you in?", required:true },
+  { id:'target_audience', stage:'business', q:"Who is your target audience or ideal customer?", required:true },
+  { id:'target_location', stage:'business', q:"What geographic area does your business serve or target? (a city, region, country, or \"worldwide\") I'll use this along with your industry to research real competitors for you.", required:true },
+  { id:'services', stage:'business', q:"What services or products do you offer?", required:true },
+  { id:'goals', stage:'business', q:"What are your main goals for this website? (e.g. generate leads, sell online, build credibility)", required:true },
+  { id:'usp', stage:'business', q:"What makes you different — your unique selling proposition? (You'll also see how you compare to competitors I find shortly.)", required:false },
+  { id:'address', stage:'business', q:"What's your business address? (or say \"online only\" if you have no physical location)", required:false },
+  { id:'contact', stage:'business', q:"What contact details should appear on the site? (email, phone, etc.)", required:true },
+
+  { id:'logo', stage:'branding', q:"Do you have a logo ready? (yes/no — if yes you can share it after this chat; if no, I'll design placeholder branding)", required:true },
+  { id:'colors', stage:'branding', q:"Do you have preferred brand colors? (hex codes if you have them, or just describe them — e.g. \"navy and gold\")", required:false },
+  { id:'typography', stage:'branding', q:"Any typography preferences? (e.g. modern sans-serif, elegant serif — or say \"no preference\")", required:false },
+  { id:'style', stage:'branding', q:"What visual style fits your brand best? (Modern / Luxury / Corporate / Minimal / Creative / Dark / Light)", required:true },
+  { id:'references', stage:'branding', q:"Any reference websites whose look you admire? (links, or say \"none\")", required:false },
+  { id:'animations', stage:'branding', q:"Do you want animation/motion on the site, or keep it minimal and static?", required:false },
+
+  { id:'website_type', stage:'requirements', q:"What type of website is this? (Business site, E-commerce store, Portfolio, Blog, Booking/Service site, etc.)", required:true },
+  { id:'pages', stage:'requirements', q:"What pages do you need? (e.g. Home, About, Services, Contact, Blog)", required:true },
+  { id:'features', stage:'requirements', q:"What features do you need? (forms, booking system, payment gateway, blog, portfolio, gallery, testimonials, FAQ, careers page, downloads — list any that apply, or say \"none of these\")", required:true },
+
+  { id:'domain', stage:'hosting', q:"What domain name will this site use? (an existing one, or the one you plan to register). I need this confirmed before I can start building.", required:true },
+  { id:'hosting_provider', stage:'hosting', q:"Where will you host the site? (Hostinger, cPanel, SiteGround, Crazy Domains, Vercel, Netlify, Cloudflare Pages, AWS, or \"not decided yet\")", required:true },
+  { id:'existing_site', stage:'hosting', q:"Do you have an existing website we're replacing or migrating content from?", required:false },
+  { id:'keywords', stage:'hosting', q:"What are the main keywords you want to rank for on Google?", required:false },
+  { id:'seo_tools', stage:'hosting', q:"Do you already have Google Analytics, Search Console, or a Google Business Profile set up?", required:false }
+];
+
+const SYSTEM_PROMPT = `You are Draftline, an AI-powered web design agency. You work with multiple independent clients, and for each one you run the full lifecycle of building a professional website: onboarding, planning, incremental development, optimization, and handover with deployment guidance.
+
+The client has already completed a structured onboarding questionnaire, one question at a time, before this conversation began. Their full brief (as question/answer pairs) is provided in the first user message below, and it already includes a web-search-based competitor analysis Draftline ran automatically using their industry, services, and target location — do not ask the client to manually list competitors again; refer back to that research instead. Do not re-ask anything already answered there unless the client's answer was clearly a skip on a required-feeling detail and you need it to proceed.
+
+Behave like a senior agency lead: explain recommendations, and never hand over broken or incomplete work.
+
+Every site you scope or produce must be SEO-ready, fast-loading, mobile-first responsive, WCAG-accessible, secure, and built with clean reusable code, deployable to the client's chosen host.
+
+HARD GATE: a confirmed domain name is required before writing any code. It affects meta tags, canonical URLs, structured data, and the sitemap from the first section onward. If the client's domain answer was vague or skipped, ask for it directly before proceeding — do not use a placeholder domain.
+
+Your first reply in this conversation should: briefly summarize your understanding of the brief back to the client in a few bullet points, propose a site structure (pages + key sections), and ask for confirmation before writing any code.
+
+DEVELOPMENT: once confirmed, build one logical section at a time (Header, Hero, Services, Footer, Admin Panel, etc). Every time you present code, output the CURRENT FULL STATE of the website as one complete, self-contained HTML document — all sections approved so far, with CSS in a single <style> block and JS in a single <script> block — inside one fenced code block starting with \`\`\`html. Never output just an isolated fragment; always re-emit the whole cumulative page so it stays a single deployable file. Briefly describe what's new in this section in your own words above the code block, then wait for approval before adding the next section.
+
+CODE QUALITY: every full-page snippet must be complete, closed, production-ready, properly indented, and free of placeholder comments or truncated logic — it must render correctly as a standalone file on its own.
+
+IMAGES: never invent broken URLs. Use SVG placeholders/skeletons sized to the correct aspect ratio until real assets exist. For each real image slot, provide a sourcing brief (search terms, what it should depict, why it fits, placement, crop ratio, color compatibility) rather than a fake stock ID.
+
+ADMIN PANEL: every build includes a lightweight client-editable panel (contact info, social links, hero/CTA copy) with a live preview and an "Export Changes" button producing a site-config.json, plus plain-language upload instructions for their specific host. Flag clearly that a static site's password gate is a soft convenience gate, not real security.
+
+DEPLOYMENT: give host-specific instructions matched to what the client chose. Never claim to deploy anything yourself or ask for real credentials — you guide, the client acts.
+
+Stay conversational, concise, and structured with clear headers/bullets in your replies.`;
+
+let loggedIn = false;
+let currentUsername = null;
+let authMode = 'login'; // or 'signup'
+let messages = [];
+let onboardingIndex = 0;
+let onboardingAnswers = {};
+let onboardingComplete = false;
+let currentSiteCode = null;
+
+const previewBtn = document.getElementById('previewBtn');
+const exportBtn = document.getElementById('exportBtn');
+const previewOverlay = document.getElementById('previewOverlay');
+const previewFrame = document.getElementById('previewFrame');
+const authOverlay = document.getElementById('authOverlay');
+const authTitle = document.getElementById('authTitle');
+const authSubtitle = document.getElementById('authSubtitle');
+const authUsername = document.getElementById('authUsername');
+const authPassword = document.getElementById('authPassword');
+const authError = document.getElementById('authError');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const authToggleLink = document.getElementById('authToggleLink');
+const logoutBtn = document.getElementById('logoutBtn');
+
+const chatScroll = document.getElementById('chat-scroll');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const skipBtn = document.getElementById('skipBtn');
+const rail = document.getElementById('rail');
+const qcounter = document.getElementById('qcounter');
+const hintText = document.getElementById('hintText');
+
+function stageIndexFor(stageId){
+  return STAGES.findIndex(s => s.id === stageId);
+}
+
+function renderRail(activeStageId){
+  const activeIdx = stageIndexFor(activeStageId);
+  rail.innerHTML = STAGES.map((s,i)=>{
+    let cls = 'stage';
+    if(i < activeIdx) cls += ' done';
+    else if(i === activeIdx) cls += ' active';
+    return `<div class="${cls}"><span class="dot"></span>${s.label}</div>`;
+  }).join('');
+}
+
+function extractSiteCode(text){
+  const regex = /```html\s*([\s\S]*?)```/gi;
+  let match, last = null;
+  while((match = regex.exec(text)) !== null){
+    last = match[1];
+  }
+  return last ? last.trim() : null;
+}
+
+function captureSiteCodeFromReply(replyText){
+  const code = extractSiteCode(replyText);
+  if(code){
+    currentSiteCode = code;
+    previewBtn.disabled = false;
+    exportBtn.disabled = false;
+    const note = document.createElement('div');
+    note.style.cssText = 'font-family:var(--mono); font-size:10.5px; letter-spacing:0.05em; text-transform:uppercase; color:var(--green); margin:-14px 0 22px 2px;';
+    note.textContent = '✓ Live preview updated — see Preview / Export Site in the header';
+    chatScroll.appendChild(note);
+    chatScroll.scrollTop = chatScroll.scrollHeight;
+  }
+}
+
+function openPreview(){
+  if(!currentSiteCode) return;
+  previewFrame.srcdoc = currentSiteCode;
+  previewOverlay.style.display = 'flex';
+}
+
+function exportSite(){
+  if(!currentSiteCode) return;
+  const filenameBase = (onboardingAnswers.business_name || 'website').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'website';
+  const blob = new Blob([currentSiteCode], { type:'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filenameBase}.html`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+previewBtn.addEventListener('click', openPreview);
+exportBtn.addEventListener('click', exportSite);
+document.getElementById('exportFromPreviewBtn').addEventListener('click', exportSite);
+document.getElementById('closePreviewBtn').addEventListener('click', () => {
+  previewOverlay.style.display = 'none';
+});
+
+function escapeHtml(str){
+  return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function formatBubble(text){
+  let safe = escapeHtml(text);
+  safe = safe.replace(/```([\s\S]*?)```/g, (m, code) => `<pre>${code.trim()}</pre>`);
+  safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+  safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  return safe;
+}
+
+function addMessage(role, text, opts){
+  opts = opts || {};
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + (role === 'user' ? 'user' : 'agent');
+  let tag = '';
+  if(opts.required) tag = '<span class="req-tag">Required</span><br>';
+  if(opts.tagLabel) tag = `<span class="req-tag" style="color:var(--blue);border-color:var(--blue);">${opts.tagLabel}</span><br>`;
+  wrap.innerHTML = `<div class="label">${role === 'user' ? 'You' : 'Draftline'}</div><div class="bubble">${tag}${formatBubble(text)}</div>`;
+  chatScroll.appendChild(wrap);
+  chatScroll.scrollTop = chatScroll.scrollHeight;
+  return wrap;
+}
+
+function addTyping(){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg agent';
+  wrap.id = 'typingIndicator';
+  wrap.innerHTML = `<div class="label">Draftline</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  chatScroll.appendChild(wrap);
+  chatScroll.scrollTop = chatScroll.scrollHeight;
+}
+function removeTyping(){
+  const el = document.getElementById('typingIndicator');
+  if(el) el.remove();
+}
+
+function showQuestion(index){
+  const item = QUESTIONS[index];
+  renderRail(item.stage);
+  qcounter.textContent = `Question ${index + 1} of ${QUESTIONS.length}`;
+  addMessage('assistant', item.q, { required: item.required });
+  skipBtn.style.display = item.required ? 'none' : 'inline-block';
+  hintText.textContent = item.required ? 'Press Enter or Submit to continue' : 'Optional — answer or skip';
+  userInput.placeholder = 'Type your answer…';
+  userInput.focus();
+}
+
+function buildBriefSummary(){
+  let lines = [];
+  QUESTIONS.forEach(item => {
+    const ans = onboardingAnswers[item.id];
+    lines.push(`- ${item.q}\n  Answer: ${ans && ans.trim() ? ans : '(skipped)'}`);
+  });
+  let out = "Here is the client's full onboarding brief, collected one question at a time:\n\n" + lines.join('\n');
+  if(onboardingAnswers.competitor_analysis){
+    out += `\n\n---\nCompetitor analysis already completed during onboarding:\n${onboardingAnswers.competitor_analysis}`;
+  }
+  return out;
+}
+
+async function callClaudeAPI(msgs, useSearch){
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages: msgs, system: SYSTEM_PROMPT, useSearch: !!useSearch })
+  });
+  if(res.status === 401){
+    loggedIn = false;
+    showAuthOverlay('login', 'Your session expired — please log in again.');
+    throw new Error('Session expired');
+  }
+  const data = await res.json();
+  if(!res.ok){
+    throw new Error(data.error || `Server error ${res.status}`);
+  }
+  return data.text || '(no text response)';
+}
+
+async function callClaude(){
+  return callClaudeAPI(messages, false);
+}
+
+async function runCompetitorAnalysis(){
+  addMessage('assistant', "Researching your market now — one moment while I look up real competitors based on your industry and target location…");
+  addTyping();
+  sendBtn.disabled = true;
+  const prompt = `Business name: ${onboardingAnswers.business_name}
+Industry: ${onboardingAnswers.industry}
+Services/products: ${onboardingAnswers.services}
+Target location: ${onboardingAnswers.target_location}
+
+Search the web and identify 3-5 real, currently active competitor businesses operating in this industry and target location. For each one, give: name, website (if found), and a one-sentence note on their positioning relevant to differentiating this new site. Be concise and factual — only include competitors you found real evidence for. Format as a short markdown list.`;
+  messages.push({ role:'user', content: prompt });
+  try{
+    const result = await callClaudeAPI(messages, true);
+    removeTyping();
+    addMessage('assistant', result, { tagLabel: 'Competitor Analysis' });
+    messages.push({ role:'assistant', content: result });
+    onboardingAnswers.competitor_analysis = result;
+  }catch(err){
+    removeTyping();
+    addMessage('assistant', `I couldn't complete the competitor search (${err.message}). We'll continue onboarding and can revisit this later.`);
+    messages.pop();
+  }finally{
+    sendBtn.disabled = false;
+  }
+}
+
+async function finishOnboardingAndHandoff(){
+  onboardingComplete = true;
+  qcounter.textContent = 'Onboarding complete — planning your site';
+  renderRail('build');
+  skipBtn.style.display = 'none';
+  hintText.textContent = '';
+  userInput.placeholder = 'Message Draftline…';
+
+  const brief = buildBriefSummary();
+  messages.push({ role:'user', content: brief });
+  addTyping();
+  sendBtn.disabled = true;
+  try{
+    const reply = await callClaudeAPI(messages, false);
+    removeTyping();
+    addMessage('assistant', reply);
+    messages.push({ role:'assistant', content: reply });
+    captureSiteCodeFromReply(reply);
+  }catch(err){
+    removeTyping();
+    addMessage('assistant', `I hit an error reaching the API: ${err.message}\n\nCheck that your API key is valid and has credit, then try again by sending a message.`);
+  }finally{
+    sendBtn.disabled = false;
+  }
+}
+
+async function handleOnboardingSubmit(rawText){
+  const item = QUESTIONS[onboardingIndex];
+  const answer = rawText.trim();
+  if(!answer){
+    if(item.required) return; // required question, nothing submitted, do nothing
+  }
+  onboardingAnswers[item.id] = answer || '(skipped)';
+  addMessage('user', answer ? answer : '(skipped)');
+
+  if(item.id === 'services'){
+    await runCompetitorAnalysis();
+  }
+
+  onboardingIndex++;
+  if(onboardingIndex < QUESTIONS.length){
+    showQuestion(onboardingIndex);
+  }else{
+    await finishOnboardingAndHandoff();
+  }
+}
+
+async function handleChatSubmit(text){
+  addMessage('user', text);
+  messages.push({ role:'user', content:text });
+  sendBtn.disabled = true;
+  addTyping();
+  try{
+    const reply = await callClaude();
+    removeTyping();
+    addMessage('assistant', reply);
+    messages.push({ role:'assistant', content:reply });
+    captureSiteCodeFromReply(reply);
+  }catch(err){
+    removeTyping();
+    addMessage('assistant', `I hit an error reaching the API: ${err.message}\n\nCheck that your API key is valid and has credit, then try again.`);
+  }finally{
+    sendBtn.disabled = false;
+    userInput.focus();
+  }
+}
+
+async function sendMessage(){
+  const text = userInput.value.trim();
+  if(!loggedIn) return;
+  if(!onboardingComplete){
+    const item = QUESTIONS[onboardingIndex];
+    if(!text && item.required) return;
+    userInput.value = '';
+    userInput.style.height = 'auto';
+    await handleOnboardingSubmit(text);
+    return;
+  }
+  if(!text) return;
+  userInput.value = '';
+  userInput.style.height = 'auto';
+  await handleChatSubmit(text);
+}
+
+sendBtn.addEventListener('click', sendMessage);
+userInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+userInput.addEventListener('input', () => {
+  userInput.style.height = 'auto';
+  userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
+});
+
+skipBtn.addEventListener('click', () => {
+  if(onboardingComplete) return;
+  const item = QUESTIONS[onboardingIndex];
+  if(item.required) return;
+  userInput.value = '';
+  handleOnboardingSubmit('');
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if(!confirm('Start a new client session? This clears the current conversation.')) return;
+  messages = [];
+  onboardingIndex = 0;
+  onboardingAnswers = {};
+  onboardingComplete = false;
+  currentSiteCode = null;
+  previewBtn.disabled = true;
+  exportBtn.disabled = true;
+  chatScroll.innerHTML = '';
+  startOnboarding();
+});
+
+function showAuthOverlay(mode, errorMsg){
+  authMode = mode;
+  authError.style.display = 'none';
+  authPassword.value = '';
+  if(mode === 'signup'){
+    authTitle.textContent = 'Create your Draftline account';
+    authSubtitle.textContent = 'Pick a username and password — you\'ll use these to log in next time.';
+    authSubmitBtn.textContent = 'Sign Up';
+    authToggleLink.textContent = 'Already have an account? Log in';
+  }else{
+    authTitle.textContent = 'Log in to Draftline';
+    authSubtitle.textContent = 'Enter your account to start building.';
+    authSubmitBtn.textContent = 'Log In';
+    authToggleLink.textContent = 'Need an account? Sign up';
+  }
+  if(errorMsg){
+    authError.textContent = errorMsg;
+    authError.style.display = 'block';
+  }
+  authOverlay.style.display = 'flex';
+  authUsername.focus();
+}
+
+authToggleLink.addEventListener('click', (e) => {
+  e.preventDefault();
+  showAuthOverlay(authMode === 'login' ? 'signup' : 'login');
+});
+
+async function submitAuth(){
+  const username = authUsername.value.trim();
+  const password = authPassword.value;
+  if(!username || !password){
+    authError.textContent = 'Please fill in both fields.';
+    authError.style.display = 'block';
+    return;
+  }
+  authSubmitBtn.disabled = true;
+  try{
+    const endpoint = authMode === 'signup' ? '/api/signup' : '/api/login';
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if(!res.ok){
+      authError.textContent = data.error || 'Something went wrong.';
+      authError.style.display = 'block';
+      return;
+    }
+    loggedIn = true;
+    currentUsername = data.username;
+    authOverlay.style.display = 'none';
+    logoutBtn.style.display = 'inline-block';
+    if(chatScroll.children.length === 0) startOnboarding();
+  }catch(err){
+    authError.textContent = 'Could not reach the server. Please try again.';
+    authError.style.display = 'block';
+  }finally{
+    authSubmitBtn.disabled = false;
+  }
+}
+
+authSubmitBtn.addEventListener('click', submitAuth);
+authPassword.addEventListener('keydown', (e) => { if(e.key === 'Enter') submitAuth(); });
+
+logoutBtn.addEventListener('click', async () => {
+  await fetch('/api/logout', { method:'POST' });
+  loggedIn = false;
+  currentUsername = null;
+  logoutBtn.style.display = 'none';
+  showAuthOverlay('login');
+});
+
+async function checkSession(){
+  try{
+    const res = await fetch('/api/me');
+    const data = await res.json();
+    if(data.loggedIn){
+      loggedIn = true;
+      currentUsername = data.username;
+      logoutBtn.style.display = 'inline-block';
+      startOnboarding();
+    }else{
+      showAuthOverlay('login');
+    }
+  }catch(err){
+    showAuthOverlay('login');
+  }
+}
+
+checkSession();
+
+function startOnboarding(){
+  addMessage('assistant', "Welcome — I'm Draftline, your AI website builder agent.\n\nI'll ask you a series of questions, one at a time, to fully understand your business before I write any code. Just answer and submit each one — optional questions can be skipped.");
+  showQuestion(0);
+}
+</script>
+
+</body>
+</html>
